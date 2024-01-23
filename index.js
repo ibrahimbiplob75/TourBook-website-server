@@ -96,7 +96,7 @@ async function run() {
         res.send(result)
     });
 
-    app.get("/all/users",verifyToken,verifyAdmin,async(req,res)=>{
+    app.get("/all/users",verifyToken,async(req,res)=>{
       
       const result=await userData.find().toArray();
         res.send(result);
@@ -191,19 +191,13 @@ async function run() {
           if (!discussion) {
             return res.status(404).json({ message: 'Discussion not found' });
           }
-
-          // Check if the likes field is present and is an array
           const alreadyLiked = Array.isArray(discussion.likes) && discussion.likes.includes(userId);
 
           if (alreadyLiked) {
-            // Unlike the discussion
             discussion.likes = discussion.likes.filter((likeUserId) => likeUserId !== userId);
           } else {
-            // Initialize the likes field if not present and like the discussion
             discussion.likes = data.liked;
           }
-
-          // Update the discussion document with the new like status
           const updateDoc = {
             $set: {
               likes: discussion.likes,
@@ -218,7 +212,7 @@ async function run() {
 
     app.post('/discussion/:id/comments', async (req, res) => {
       const discussionId = req.params.id;
-      const { comment } = req.body;
+      const commentData = req.body;
 
       try {
         const query = { _id: new ObjectId(discussionId) };
@@ -229,7 +223,7 @@ async function run() {
         }
 
         // Add the new comment to the comments array
-        discussion.comments = [...(discussion.comments || []), comment];
+        discussion.comments = [...(discussion.comments || []),  {commentData}];
 
         // Update the discussion document with the new comments
         const updateDoc = {
