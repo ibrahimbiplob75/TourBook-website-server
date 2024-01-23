@@ -36,7 +36,7 @@ async function run() {
     await client.connect();
     const userData=client.db("TourbookDB").collection("Users")
     const discussionData=client.db("TourbookDB").collection("discussion");
-    const Cartdata=client.db("TourbookDB").collection("CartItems");
+    const membership=client.db("TourbookDB").collection("members");
     const tourData=client.db("TourbookDB").collection("orders");
 
     //Jwt api
@@ -96,12 +96,12 @@ async function run() {
         res.send(result)
     });
 
-    app.get("/all/users",verifyToken,async(req,res)=>{
+    app.get("/all/users",async(req,res)=>{
       
       const result=await userData.find().toArray();
         res.send(result);
     })
-    app.get("/users",async(req,res)=>{
+    app.get("/users/:email",async(req,res)=>{
       const email=req.query.email;
       const query={email:email};
       const result=await userData.findOne(query)
@@ -250,23 +250,23 @@ async function run() {
 
 
 
-    app.get("/carts",async(req,res)=>{
-        const email=req.query.email;
-        const query={email:email};
-        const result=await Cartdata.find(query).toArray();
-        res.send(result);
-    });
-    app.post("/carts",async(req,res)=>{
-      const cartItem=req.body;
-      const result =await Cartdata.insertOne(cartItem);
-      res.send(result);
-    });
-    app.delete("/carts/:id",async(req,res)=>{
-        const id=req.params.id;
-        const query={_id:new ObjectId(id)};
-        const result=await Cartdata.deleteOne(query);
-        res.send(result);
-    });
+    // app.get("/carts",async(req,res)=>{
+    //     const email=req.query.email;
+    //     const query={email:email};
+    //     const result=await Cartdata.find(query).toArray();
+    //     res.send(result);
+    // });
+    // app.post("/carts",async(req,res)=>{
+    //   const cartItem=req.body;
+    //   const result =await Cartdata.insertOne(cartItem);
+    //   res.send(result);
+    // });
+    // app.delete("/carts/:id",async(req,res)=>{
+    //     const id=req.params.id;
+    //     const query={_id:new ObjectId(id)};
+    //     const result=await Cartdata.deleteOne(query);
+    //     res.send(result);
+    // });
 
     app.post("/create-payment-intent", async (req, res) => {
       const {price}=req.body;
@@ -286,24 +286,22 @@ async function run() {
 
     app.get("/payments/:email",verifyToken,async(req,res)=>{
       const email=req.params.email;
+      console.log(email)
+
       if(req.params.email!==req.decoded.email){
         return res.status(403).send({meassge:"Unauthorized access"})
       }
       const query={email:email};
-      const result=await OrderData.find(query).toArray();
+      const result=await membership.findOne(query);
       res.send(result);
     });
     
 
     app.post("/payments",verifyToken,async(req,res)=>{
         const data=req.body;
-        const paymentResult=await OrderData.insertOne(data);
+        const paymentResult=await membership.insertOne(data);
         
-        const query={_id:{
-          $in:data.cartItems.map(id=>new ObjectId(id))
-        }}
-        const DeleteResult=await Cartdata.deleteMany(query)
-        res.send({DeleteResult,paymentResult});
+        res.send(paymentResult);
     })
 
 
