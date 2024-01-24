@@ -43,9 +43,9 @@ async function run() {
     app.post("/jwt",async(req,res)=>{
       const user=req.body;
       const token=jwt.sign(user,process.env.ACCESS_TOKEN , {
-        expiresIn:"1hr"
+        expiresIn:"24hr"
       })
-      console.log(token)
+      console.log(token,user)
       res.send({token});
     })
 
@@ -159,6 +159,13 @@ async function run() {
       const result=await discussionData.findOne(query);
       res.send(result)
     });
+    app.get("/discussion", async (req, res) => {
+
+          const results = await discussionData.find().toArray();
+          res.send(results);
+        
+      });
+
 
     app.patch("/discussion/:id",async(req,res)=>{
         const id=req.params.id;
@@ -284,20 +291,20 @@ async function run() {
 
     });
 
-    app.get("/payments/:email",verifyToken,async(req,res)=>{
+    app.get("/payments/:email",async(req,res)=>{
       const email=req.params.email;
       console.log(email)
 
-      if(req.params.email!==req.decoded.email){
-        return res.status(403).send({meassge:"Unauthorized access"})
-      }
+      // if(req.params.email!==req.decoded.email){
+      //   return res.status(403).send({meassge:"Unauthorized access"})
+      // }
       const query={email:email};
       const result=await membership.findOne(query);
       res.send(result);
     });
     
 
-    app.post("/payments",verifyToken,async(req,res)=>{
+    app.post("/payments",async(req,res)=>{
         const data=req.body;
         const paymentResult=await membership.insertOne(data);
         
