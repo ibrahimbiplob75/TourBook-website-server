@@ -37,7 +37,7 @@ async function run() {
     const userData=client.db("TourbookDB").collection("Users")
     const discussionData=client.db("TourbookDB").collection("discussion");
     const membership=client.db("TourbookDB").collection("members");
-    const tourData=client.db("TourbookDB").collection("orders");
+    const tagsCollection=client.db("TourbookDB").collection("tags");
 
     //Jwt api
     app.post("/jwt",async(req,res)=>{
@@ -164,7 +164,13 @@ async function run() {
           const results = await discussionData.find().toArray();
           res.send(results);
         
-      });
+    });
+    app.delete("/discussion/:id",async(req,res)=>{
+      const id=req.params.id;
+      const query={_id: new ObjectId(id)};
+      const result=await discussionData.deleteOne(query);
+      res.send(result);
+    })
 
 
     app.patch("/discussion/:id",async(req,res)=>{
@@ -173,11 +179,15 @@ async function run() {
         const query={_id:new ObjectId(id)};
         const updateDoc = {
         $set: {
-          name:update.name,
-          category:update.category,
-          price:update.price,
-          recipe:update.recipe,
-          image:update.image
+          title:update.title,
+          userName:update.userName,
+          email:update.email,
+          profileURL:update.profileURL,
+          tag:update.tag,
+          subTag:update.subTag,
+          descriptions:update.descriptions,
+          image:update?.image,
+          
           }
         }
       const result = await discussionData.updateOne(query, updateDoc);
@@ -257,23 +267,37 @@ async function run() {
 
 
 
-    // app.get("/carts",async(req,res)=>{
-    //     const email=req.query.email;
-    //     const query={email:email};
-    //     const result=await Cartdata.find(query).toArray();
-    //     res.send(result);
-    // });
-    // app.post("/carts",async(req,res)=>{
-    //   const cartItem=req.body;
-    //   const result =await Cartdata.insertOne(cartItem);
-    //   res.send(result);
-    // });
-    // app.delete("/carts/:id",async(req,res)=>{
-    //     const id=req.params.id;
-    //     const query={_id:new ObjectId(id)};
-    //     const result=await Cartdata.deleteOne(query);
-    //     res.send(result);
-    // });
+// Add a new tag
+    app.post('/tags', async (req, res) => {
+      
+        const { tags } = req.body;
+        const tag = { tags, subTags: [] };
+        const result = await tagsCollection.insertOne(tag);
+        res.send(result);
+      
+    });
+
+    // Add a new sub-tag to an existing tag
+    app.post('/tags/:id/subtags', async (req, res) => {
+      
+        const { id } = req.params;
+        const { subTag } = req.body;
+
+        const result = await tagsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $push: { subTags: subTag } }
+        );
+
+       res.json(await tagsCollection.findOne({ _id: new ObjectId(id) }));
+     
+    });
+
+    // Get all tags with sub-tags
+    app.get('/tags', async (req, res) => {
+        const tags = await tagsCollection.find().toArray();
+        res.send(tags)
+    });
+
 
     app.post("/create-payment-intent", async (req, res) => {
       const {price}=req.body;
