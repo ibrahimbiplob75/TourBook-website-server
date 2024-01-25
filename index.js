@@ -39,6 +39,7 @@ async function run() {
     const membership=client.db("TourbookDB").collection("members");
     const tagsCollection=client.db("TourbookDB").collection("tags");
     const anouncement=client.db("TourbookDB").collection("anouncements")
+    const discussionComment=client.db("TourbookDB").collection("Comments")
 
     //Jwt api
     app.post("/jwt",async(req,res)=>{
@@ -195,66 +196,61 @@ async function run() {
       res.send(result)
     })
 
-    app.patch("/discussion/:id/like",async(req,res)=>{
-        const discussionId = req.params.id;
-        const data=req.body;
-        const userId=req.body.userID;
-        console.log(data.liked)
-        const query = { _id: new ObjectId(discussionId) };
-        const discussion = await discussionData.findOne(query);
+  app.patch("/discussion/:id/like", async (req, res) => {
 
-          if (!discussion) {
-            return res.status(404).json({ message: 'Discussion not found' });
-          }
-          const alreadyLiked = Array.isArray(discussion.likes) && discussion.likes.includes(userId);
+    const discussionId = req.params.id;
+    const { liked, userID } = req.body;
 
-          if (alreadyLiked) {
-            discussion.likes = discussion.likes.filter((likeUserId) => likeUserId !== userId);
-          } else {
-            discussion.likes = data.liked;
-          }
-          const updateDoc = {
-            $set: {
-              likes: discussion.likes,
-              LikedUser:[userId],
-            },
-          };
+    const query = { _id: new ObjectId(discussionId) };
+    const discussion = await discussionData.findOne(query);
 
-          const result = await discussionData.updateOne(query, updateDoc);
-          res.send(result);
+    if (!discussion) {
+      return res.status(404).json({ message: 'Discussion not found' });
+    }
+
+    if (!Array.isArray(discussion.likes)) {
       
-    })
+      discussion.likes = [];
+    }
+    const alreadyLiked = discussion.likes.includes(userID);
+
+    if (alreadyLiked) {
+      discussion.likes = discussion.likes.filter((likeUserId) => likeUserId !== userID);
+    } else {
+      discussion.likes.push(userID);
+    }
+    const updateDoc = {
+      $set: {
+        liked: discussion.liked,
+      },
+    };
+
+    const result = await discussionData.updateOne(query, updateDoc);
+    res.send(result);
+  
+    });
+
 
     app.post('/discussion/:id/comments', async (req, res) => {
-      const discussionId = req.params.id;
       const commentData = req.body;
-
-      try {
-        const query = { _id: new ObjectId(discussionId) };
-        const discussion = await discussionData.findOne(query);
-
-        if (!discussion) {
-          return res.status(404).json({ success: false, message: 'Discussion not found' });
-        }
-
-        // Add the new comment to the comments array
-        discussion.comments = [...(discussion.comments || []),  {commentData}];
-
-        // Update the discussion document with the new comments
-        const updateDoc = {
-          $set: {
-            comments: discussion.comments,
-          },
-        };
-
-        const result = await discussionData.updateOne(query, updateDoc);
-
-        res.json({ success: true, message: 'Comment added successfully' });
-      } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Internal Server Error' });
-      }
+      const result = await discussionComment.insertOne(commentData);
+      res.send(result)
+      
     });
+
+    app.get("/discussion/:id/comments", async (req, res) => {
+    const discussionId = req.params.id;
+
+    try {
+      // Find comments based on the discussion ID
+      const comments = await discussionComment.find({ discuss_id: discussionId });
+
+      res.json(comments);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
 
     app.delete("/discussion/:id",async(req,res)=>{
       const id=req.params.id;
