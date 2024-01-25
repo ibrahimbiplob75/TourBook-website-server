@@ -38,6 +38,7 @@ async function run() {
     const discussionData=client.db("TourbookDB").collection("discussion");
     const membership=client.db("TourbookDB").collection("members");
     const tagsCollection=client.db("TourbookDB").collection("tags");
+    const anouncement=client.db("TourbookDB").collection("anouncements")
 
     //Jwt api
     app.post("/jwt",async(req,res)=>{
@@ -199,9 +200,6 @@ async function run() {
         const data=req.body;
         const userId=req.body.userID;
         console.log(data.liked)
-        
-
-  
         const query = { _id: new ObjectId(discussionId) };
         const discussion = await discussionData.findOne(query);
 
@@ -299,6 +297,24 @@ async function run() {
     });
 
 
+    app.post("/anouncement",async(req,res)=>{
+      const data=req.body;
+      const result=await anouncement.insertOne(data);
+      res.send(result);
+
+    })
+    app.get("/anouncement",async(req,res)=>{
+      const result=await anouncement.find().toArray();
+      res.send(result);
+    })
+    app.get("/announcement/:id",async(req,res)=>{
+      const id=req.params.id;
+      const query={_id:new ObjectId(id)};
+      const result=await anouncement.findOne(query)
+      res.send(result);
+    })
+
+
     app.post("/create-payment-intent", async (req, res) => {
       const {price}=req.body;
       const amount=parseInt(price*100);
@@ -308,7 +324,7 @@ async function run() {
         currency: "usd",
         payment_method_types:["card"]
       });
-      console.log(paymentIntent.client_secret)
+      
       res.send({
       clientSecret: paymentIntent.client_secret,
       });
